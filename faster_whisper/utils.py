@@ -2,11 +2,7 @@ import logging
 import os
 import re
 
-from typing import List, Optional, Union
-
 import huggingface_hub
-import requests
-
 from tqdm.auto import tqdm
 
 _MODELS = {
@@ -32,7 +28,7 @@ _MODELS = {
 }
 
 
-def available_models() -> List[str]:
+def available_models() -> list[str]:
     """Returns the names of available models."""
     return list(_MODELS.keys())
 
@@ -49,11 +45,11 @@ def get_logger():
 
 def download_model(
     size_or_id: str,
-    output_dir: Optional[str] = None,
+    output_dir: str | None = None,
     local_files_only: bool = False,
-    cache_dir: Optional[str] = None,
-    revision: Optional[str] = None,
-    use_auth_token: Optional[Union[str, bool]] = None,
+    cache_dir: str | None = None,
+    revision: str | None = None,
+    use_auth_token: str | bool | None = None,
 ):
     """Downloads a CTranslate2 Whisper model from the Hugging Face Hub.
 
@@ -163,7 +159,7 @@ class disabled_tqdm(tqdm):
         super().__init__(*args, **kwargs)
 
 
-def get_end(segments: List[dict]) -> Optional[float]:
+def get_end(segments: list[dict]) -> float | None:
     return next(
         (w["end"] for s in reversed(segments) for w in reversed(s["words"])),
         segments[-1]["end"] if segments else None,
