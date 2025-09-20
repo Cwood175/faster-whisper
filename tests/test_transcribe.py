@@ -12,6 +12,7 @@ from faster_whisper import (
 )
 
 
+
 def test_supported_languages():
     model = WhisperModel("tiny.en")
     assert model.supported_languages == ["en"]
@@ -63,6 +64,7 @@ def test_transcribe(jfk_path):
         " And so my fellow Americans ask not what your country can do for you, "
         "ask what you can do for your country."
     )
+
 
 
 def test_batched_transcribe(physcisworks_path):
@@ -122,6 +124,7 @@ async def test_async_batched_transcribe(physcisworks_path):
         )
     assert len(segments) > 7
 
+
 def test_empty_audio():
     audio = np.asarray([], dtype="float32")
     model = WhisperModel("tiny")
@@ -149,6 +152,7 @@ def test_prefix_with_timestamps(jfk_path):
     assert 10 < segment.end <= 11
 
 
+
 def test_vad(jfk_path):
     model = WhisperModel("tiny")
     segments, info = model.transcribe(
@@ -171,6 +175,7 @@ def test_vad(jfk_path):
 
     assert info.vad_options.min_silence_duration_ms == 500
     assert info.vad_options.speech_pad_ms == 200
+
 
 
 def test_stereo_diarization(data_dir):
@@ -248,6 +253,7 @@ def test_multilingual_transcription(data_dir):
     )
 
 
+
 def test_hotwords(data_dir):
     model = WhisperModel("tiny")
     pipeline = BatchedInferencePipeline(model)
@@ -266,6 +272,7 @@ def test_hotwords(data_dir):
 
     assert "ComfyUI" in segments[0].text
     assert info.transcription_options.hotwords == "ComfyUI"
+
 
 
 def test_transcribe_signature():

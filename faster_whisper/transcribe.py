@@ -31,6 +31,7 @@ from faster_whisper.vad import (
 )
 
 
+
 @dataclass
 class Word:
     start: float
@@ -109,6 +110,8 @@ class TranscriptionInfo:
     all_language_probs: Optional[List[Tuple[str, float]]]
     transcription_options: TranscriptionOptions
     vad_options: VadOptions
+
+
 
 
 class BatchedInferencePipeline:
@@ -254,6 +257,7 @@ class BatchedInferencePipeline:
 
         return encoder_output, output
 
+
     def transcribe(
         self,
         audio: Union[str, BinaryIO, np.ndarray],
@@ -376,6 +380,7 @@ class BatchedInferencePipeline:
             - a generator over transcribed segments
             - an instance of TranscriptionInfo
         """
+
 
         sampling_rate = self.model.feature_extractor.sampling_rate
 
@@ -500,6 +505,7 @@ class BatchedInferencePipeline:
             self.model.hf_tokenizer,
             self.model.model.is_multilingual,
             task=task,
+
             language=language,
         )
 
@@ -604,6 +610,7 @@ class BatchedInferencePipeline:
 
         pbar.close()
         self.last_speech_timestamp = 0.0
+
 
 
 class AsyncBatchedInferencePipeline:
@@ -756,6 +763,7 @@ class AsyncBatchedInferencePipeline:
             )
 
         return encoder_output, output
+
 
     async def transcribe(
         self,
@@ -1123,6 +1131,8 @@ class AsyncBatchedInferencePipeline:
             pbar.close()
             self.last_speech_timestamp = 0.0
 
+
+
 class WhisperModel:
     def __init__(
         self,
@@ -1249,6 +1259,7 @@ class WhisperModel:
             self.logger.warning("Could not load preprocessor config: %s", e)
 
         return config
+
 
     def transcribe(
         self,
@@ -1754,6 +1765,7 @@ class WhisperModel:
                 if duration < 0.133:
                     score += (0.133 - duration) * 15
                 if duration > 2.0:
+
                     score += duration - 2.0
                 return score
 
@@ -1893,6 +1905,7 @@ class WhisperModel:
                 * self.feature_extractor.time_per_frame,
             )
         pbar.close()
+
 
     def encode(self, features: np.ndarray) -> ctranslate2.StorageView:
         # When the model is running on multiple GPUs, the encoder output should be moved
@@ -2345,6 +2358,7 @@ class WhisperModel:
             language_probability = max(detected_language_info[language])
 
         return language, language_probability, all_language_probs
+
 
 
 def restore_speech_timestamps(
