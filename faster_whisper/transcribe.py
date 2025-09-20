@@ -13,6 +13,7 @@ from warnings import warn
 
 import ctranslate2
 import numpy as np
+import requests
 import tokenizers
 
 from ctranslate2._ext import WhisperGenerationResultAsync
@@ -1122,6 +1123,7 @@ class AsyncBatchedInferencePipeline:
         finally:
             pbar.close()
             self.last_speech_timestamp = 0.0
+
 
 class WhisperModel:
     def __init__(

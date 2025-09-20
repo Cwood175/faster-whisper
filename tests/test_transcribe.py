@@ -93,6 +93,7 @@ def test_batched_transcribe(physcisworks_path):
         )
     assert len(segments) > 7
 
+
 @pytest.mark.asyncio
 async def test_async_batched_transcribe(physcisworks_path):
     model = WhisperModel("tiny")
@@ -121,6 +122,8 @@ async def test_async_batched_transcribe(physcisworks_path):
             {"start": segment.start, "end": segment.end, "text": segment.text}
         )
     assert len(segments) > 7
+
+
 
 def test_empty_audio():
     audio = np.asarray([], dtype="float32")
@@ -248,6 +251,7 @@ def test_multilingual_transcription(data_dir):
     )
 
 
+
 def test_hotwords(data_dir):
     model = WhisperModel("tiny")
     pipeline = BatchedInferencePipeline(model)
@@ -268,6 +272,7 @@ def test_hotwords(data_dir):
     assert info.transcription_options.hotwords == "ComfyUI"
 
 
+
 def test_transcribe_signature():
     model_transcribe_args = set(inspect.getargs(WhisperModel.transcribe.__code__).args)
     pipeline_transcribe_args = set(
@@ -276,6 +281,7 @@ def test_transcribe_signature():
     pipeline_transcribe_args.remove("batch_size")
 
     assert model_transcribe_args == pipeline_transcribe_args
+
 
 
 def test_monotonic_timestamps(physcisworks_path):
@@ -303,6 +309,7 @@ def test_monotonic_timestamps(physcisworks_path):
             assert word.start <= word.end
             assert word.end <= segments[i].end
     assert segments[-1].end <= info.duration
+
 
 
 def test_cliptimestamps_segments(jfk_path):
