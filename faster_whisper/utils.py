@@ -5,7 +5,6 @@ import re
 from typing import List, Optional, Union
 
 import huggingface_hub
-import requests
 
 from tqdm.auto import tqdm
 
@@ -118,7 +117,7 @@ def download_model(
         return huggingface_hub.snapshot_download(repo_id, **kwargs)
     except (
         huggingface_hub.utils.HfHubHTTPError,
-        requests.exceptions.ConnectionError,
+        OSError,
     ) as exception:
         logger = get_logger()
         logger.warning(
