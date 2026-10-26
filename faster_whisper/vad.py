@@ -1,9 +1,7 @@
 import bisect
 import functools
 import os
-
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -44,10 +42,10 @@ class VadOptions:
 
 def get_speech_timestamps(
     audio: np.ndarray,
-    vad_options: Optional[VadOptions] = None,
+    vad_options: VadOptions | None = None,
     sampling_rate: int = 16000,
     **kwargs,
-) -> List[dict]:
+) -> list[dict]:
     """This method is used for splitting long audios into speech chunks using silero VAD.
 
     Args:
@@ -182,10 +180,10 @@ def get_speech_timestamps(
 
 def collect_chunks(
     audio: np.ndarray,
-    chunks: List[dict],
+    chunks: list[dict],
     sampling_rate: int = 16000,
     max_duration: float = float("inf"),
-) -> Tuple[List[np.ndarray], List[Dict[str, float]]]:
+) -> tuple[list[np.ndarray], list[dict[str, float]]]:
     """This function merges the chunks of audio into chunks of max_duration (s) length."""
     if not chunks:
         chunk_metadata = {
@@ -243,7 +241,7 @@ def collect_chunks(
 class SpeechTimestampsMap:
     """Helper class to restore original speech timestamps."""
 
-    def __init__(self, chunks: List[dict], sampling_rate: int, time_precision: int = 2):
+    def __init__(self, chunks: list[dict], sampling_rate: int, time_precision: int = 2):
         self.sampling_rate = sampling_rate
         self.time_precision = time_precision
         self.chunk_end_sample = []
@@ -262,7 +260,7 @@ class SpeechTimestampsMap:
     def get_original_time(
         self,
         time: float,
-        chunk_index: Optional[int] = None,
+        chunk_index: int | None = None,
         is_end: bool = False,
     ) -> float:
         if chunk_index is None:
@@ -316,10 +314,11 @@ class SileroVADModel:
         window_size_samples: int = 512,
         context_size_samples: int = 64,
     ) -> np.ndarray:
-        assert (
-            audio.ndim == 2
-        ), "Input should be a 2D array with size (batch_size, num_samples)"
+        assert audio.ndim == 2, (
+            "Input should be a 2D array with size (batch_size, num_samples)"
+        )
 
+        num_samples = audio.shape[1]
         rhs_padding = window_size_samples - num_samples % window_size_samples
         audio = np.pad(audio, ((0, 0), (context_size_samples, rhs_padding)))
         batch_size, num_samples = audio.shape
