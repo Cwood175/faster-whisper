@@ -4,17 +4,16 @@ import json
 import logging
 import os
 import zlib
-
+from collections.abc import AsyncGenerator, Iterable
 from dataclasses import asdict, dataclass
 from inspect import signature
 from math import ceil
-from typing import AsyncGenerator, BinaryIO, Iterable, List, Optional, Tuple, Union
+from typing import BinaryIO
 from warnings import warn
 
 import ctranslate2
 import numpy as np
 import tokenizers
-
 from ctranslate2._ext import WhisperGenerationResultAsync
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
@@ -54,12 +53,12 @@ class Segment:
     start: float
     end: float
     text: str
-    tokens: List[int]
+    tokens: list[int]
     avg_logprob: float
     compression_ratio: float
     no_speech_prob: float
-    words: Optional[List[Word]]
-    temperature: Optional[float]
+    words: list[Word] | None
+    temperature: float | None
 
     def _asdict(self):
         warn(
@@ -78,26 +77,26 @@ class TranscriptionOptions:
     length_penalty: float
     repetition_penalty: float
     no_repeat_ngram_size: int
-    log_prob_threshold: Optional[float]
-    no_speech_threshold: Optional[float]
-    compression_ratio_threshold: Optional[float]
+    log_prob_threshold: float | None
+    no_speech_threshold: float | None
+    compression_ratio_threshold: float | None
     condition_on_previous_text: bool
     prompt_reset_on_temperature: float
-    temperatures: List[float]
-    initial_prompt: Optional[Union[str, Iterable[int]]]
-    prefix: Optional[str]
+    temperatures: list[float]
+    initial_prompt: str | Iterable[int] | None
+    prefix: str | None
     suppress_blank: bool
-    suppress_tokens: Optional[List[int]]
+    suppress_tokens: list[int] | None
     without_timestamps: bool
     max_initial_timestamp: float
     word_timestamps: bool
     prepend_punctuations: str
     append_punctuations: str
     multilingual: bool
-    max_new_tokens: Optional[int]
-    clip_timestamps: Union[str, List[float]]
-    hallucination_silence_threshold: Optional[float]
-    hotwords: Optional[str]
+    max_new_tokens: int | None
+    clip_timestamps: str | list[float]
+    hallucination_silence_threshold: float | None
+    hotwords: str | None
 
 
 @dataclass
@@ -106,7 +105,7 @@ class TranscriptionInfo:
     language_probability: float
     duration: float
     duration_after_vad: float
-    all_language_probs: Optional[List[Tuple[str, float]]]
+    all_language_probs: list[tuple[str, float]] | None
     transcription_options: TranscriptionOptions
     vad_options: VadOptions
 
@@ -256,8 +255,8 @@ class BatchedInferencePipeline:
 
     def transcribe(
         self,
-        audio: Union[str, BinaryIO, np.ndarray],
-        language: Optional[str] = None,
+        audio: str | BinaryIO | np.ndarray,
+        language: str | None = None,
         task: str = "transcribe",
         log_progress: bool = False,
         beam_size: int = 5,
@@ -266,7 +265,7 @@ class BatchedInferencePipeline:
         length_penalty: float = 1,
         repetition_penalty: float = 1,
         no_repeat_ngram_size: int = 0,
-        temperature: Union[float, List[float], Tuple[float, ...]] = [
+        temperature: float | list[float] | tuple[float, ...] = [
             0.0,
             0.2,
             0.4,
@@ -274,15 +273,15 @@ class BatchedInferencePipeline:
             0.8,
             1.0,
         ],
-        compression_ratio_threshold: Optional[float] = 2.4,
-        log_prob_threshold: Optional[float] = -1.0,
-        no_speech_threshold: Optional[float] = 0.6,
+        compression_ratio_threshold: float | None = 2.4,
+        log_prob_threshold: float | None = -1.0,
+        no_speech_threshold: float | None = 0.6,
         condition_on_previous_text: bool = True,
         prompt_reset_on_temperature: float = 0.5,
-        initial_prompt: Optional[Union[str, Iterable[int]]] = None,
-        prefix: Optional[str] = None,
+        initial_prompt: str | Iterable[int] | None = None,
+        prefix: str | None = None,
         suppress_blank: bool = True,
-        suppress_tokens: Optional[List[int]] = [-1],
+        suppress_tokens: list[int] | None = [-1],
         without_timestamps: bool = True,
         max_initial_timestamp: float = 1.0,
         word_timestamps: bool = False,
@@ -290,16 +289,16 @@ class BatchedInferencePipeline:
         append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
         multilingual: bool = False,
         vad_filter: bool = True,
-        vad_parameters: Optional[Union[dict, VadOptions]] = None,
-        max_new_tokens: Optional[int] = None,
-        chunk_length: Optional[int] = None,
-        clip_timestamps: Optional[List[dict]] = None,
-        hallucination_silence_threshold: Optional[float] = None,
+        vad_parameters: dict | VadOptions | None = None,
+        max_new_tokens: int | None = None,
+        chunk_length: int | None = None,
+        clip_timestamps: list[dict] | None = None,
+        hallucination_silence_threshold: float | None = None,
         batch_size: int = 8,
-        hotwords: Optional[str] = None,
-        language_detection_threshold: Optional[float] = 0.5,
+        hotwords: str | None = None,
+        language_detection_threshold: float | None = 0.5,
         language_detection_segments: int = 1,
-    ) -> Tuple[Iterable[Segment], TranscriptionInfo]:
+    ) -> tuple[Iterable[Segment], TranscriptionInfo]:
         """transcribe audio in chunks in batched fashion and return with language info.
 
         Arguments:
@@ -424,7 +423,6 @@ class BatchedInferencePipeline:
             audio_chunks, chunks_metadata = collect_chunks(
                 audio, clip_timestamps, max_duration=chunk_length
             )
-
         else:
             clip_timestamps = [
                 {k: int(v * sampling_rate) for k, v in segment.items()}
@@ -717,7 +715,7 @@ class AsyncBatchedInferencePipeline:
             for i, language_token in enumerate(language_tokens):
                 prompts[i][language_token_index] = language_token
 
-        futures: List[WhisperGenerationResultAsync] = self.model.model.generate(
+        futures: list[WhisperGenerationResultAsync] = self.model.model.generate(
             encoder_output,
             prompts,
             beam_size=options.beam_size,
@@ -759,8 +757,8 @@ class AsyncBatchedInferencePipeline:
 
     async def transcribe(
         self,
-        audio: Union[str, BinaryIO, np.ndarray],
-        language: Optional[str] = None,
+        audio: str | BinaryIO | np.ndarray,
+        language: str | None = None,
         task: str = "transcribe",
         log_progress: bool = False,
         beam_size: int = 5,
@@ -769,7 +767,7 @@ class AsyncBatchedInferencePipeline:
         length_penalty: float = 1,
         repetition_penalty: float = 1,
         no_repeat_ngram_size: int = 0,
-        temperature: Union[float, List[float], Tuple[float, ...]] = [
+        temperature: float | list[float] | tuple[float, ...] = [
             0.0,
             0.2,
             0.4,
@@ -777,15 +775,15 @@ class AsyncBatchedInferencePipeline:
             0.8,
             1.0,
         ],
-        compression_ratio_threshold: Optional[float] = 2.4,
-        log_prob_threshold: Optional[float] = -1.0,
-        no_speech_threshold: Optional[float] = 0.6,
+        compression_ratio_threshold: float | None = 2.4,
+        log_prob_threshold: float | None = -1.0,
+        no_speech_threshold: float | None = 0.6,
         condition_on_previous_text: bool = True,
         prompt_reset_on_temperature: float = 0.5,
-        initial_prompt: Optional[Union[str, Iterable[int]]] = None,
-        prefix: Optional[str] = None,
+        initial_prompt: str | Iterable[int] | None = None,
+        prefix: str | None = None,
         suppress_blank: bool = True,
-        suppress_tokens: Optional[List[int]] = [-1],
+        suppress_tokens: list[int] | None = [-1],
         without_timestamps: bool = True,
         max_initial_timestamp: float = 1.0,
         word_timestamps: bool = False,
@@ -793,16 +791,16 @@ class AsyncBatchedInferencePipeline:
         append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
         multilingual: bool = False,
         vad_filter: bool = True,
-        vad_parameters: Optional[Union[dict, VadOptions]] = None,
-        max_new_tokens: Optional[int] = None,
-        chunk_length: Optional[int] = None,
-        clip_timestamps: Optional[List[dict]] = None,
-        hallucination_silence_threshold: Optional[float] = None,
+        vad_parameters: dict | VadOptions | None = None,
+        max_new_tokens: int | None = None,
+        chunk_length: int | None = None,
+        clip_timestamps: list[dict] | None = None,
+        hallucination_silence_threshold: float | None = None,
         batch_size: int = 8,
-        hotwords: Optional[str] = None,
-        language_detection_threshold: Optional[float] = 0.5,
+        hotwords: str | None = None,
+        language_detection_threshold: float | None = 0.5,
         language_detection_segments: int = 1,
-    ) -> Tuple[AsyncGenerator[Segment, None], TranscriptionInfo]:
+    ) -> tuple[AsyncGenerator[Segment, None], TranscriptionInfo]:
         """transcribe audio in chunks in batched fashion and return with language info.
 
         Arguments:
@@ -1123,20 +1121,21 @@ class AsyncBatchedInferencePipeline:
             pbar.close()
             self.last_speech_timestamp = 0.0
 
+
 class WhisperModel:
     def __init__(
         self,
         model_size_or_path: str,
         device: str = "auto",
-        device_index: Union[int, List[int]] = 0,
+        device_index: int | list[int] = 0,
         compute_type: str = "default",
         cpu_threads: int = 0,
         num_workers: int = 1,
-        download_root: Optional[str] = None,
+        download_root: str | None = None,
         local_files_only: bool = False,
         files: dict = None,
-        revision: Optional[str] = None,
-        use_auth_token: Optional[Union[str, bool]] = None,
+        revision: str | None = None,
+        use_auth_token: str | bool | None = None,
         **model_kwargs,
     ):
         """Initializes the Whisper model.
@@ -1228,7 +1227,7 @@ class WhisperModel:
         self.max_length = 448
 
     @property
-    def supported_languages(self) -> List[str]:
+    def supported_languages(self) -> list[str]:
         """The languages supported by the model."""
         return list(_LANGUAGE_CODES) if self.model.is_multilingual else ["en"]
 
@@ -1252,8 +1251,8 @@ class WhisperModel:
 
     def transcribe(
         self,
-        audio: Union[str, BinaryIO, np.ndarray],
-        language: Optional[str] = None,
+        audio: str | BinaryIO | np.ndarray,
+        language: str | None = None,
         task: str = "transcribe",
         log_progress: bool = False,
         beam_size: int = 5,
@@ -1262,7 +1261,7 @@ class WhisperModel:
         length_penalty: float = 1,
         repetition_penalty: float = 1,
         no_repeat_ngram_size: int = 0,
-        temperature: Union[float, List[float], Tuple[float, ...]] = [
+        temperature: float | list[float] | tuple[float, ...] = [
             0.0,
             0.2,
             0.4,
@@ -1270,15 +1269,15 @@ class WhisperModel:
             0.8,
             1.0,
         ],
-        compression_ratio_threshold: Optional[float] = 2.4,
-        log_prob_threshold: Optional[float] = -1.0,
-        no_speech_threshold: Optional[float] = 0.6,
+        compression_ratio_threshold: float | None = 2.4,
+        log_prob_threshold: float | None = -1.0,
+        no_speech_threshold: float | None = 0.6,
         condition_on_previous_text: bool = True,
         prompt_reset_on_temperature: float = 0.5,
-        initial_prompt: Optional[Union[str, Iterable[int]]] = None,
-        prefix: Optional[str] = None,
+        initial_prompt: str | Iterable[int] | None = None,
+        prefix: str | None = None,
         suppress_blank: bool = True,
-        suppress_tokens: Optional[List[int]] = [-1],
+        suppress_tokens: list[int] | None = [-1],
         without_timestamps: bool = False,
         max_initial_timestamp: float = 1.0,
         word_timestamps: bool = False,
@@ -1286,15 +1285,15 @@ class WhisperModel:
         append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
         multilingual: bool = False,
         vad_filter: bool = False,
-        vad_parameters: Optional[Union[dict, VadOptions]] = None,
-        max_new_tokens: Optional[int] = None,
-        chunk_length: Optional[int] = None,
-        clip_timestamps: Union[str, List[float]] = "0",
-        hallucination_silence_threshold: Optional[float] = None,
-        hotwords: Optional[str] = None,
-        language_detection_threshold: Optional[float] = 0.5,
+        vad_parameters: dict | VadOptions | None = None,
+        max_new_tokens: int | None = None,
+        chunk_length: int | None = None,
+        clip_timestamps: str | list[float] = "0",
+        hallucination_silence_threshold: float | None = None,
+        hotwords: str | None = None,
+        language_detection_threshold: float | None = 0.5,
         language_detection_segments: int = 1,
-    ) -> Tuple[Iterable[Segment], TranscriptionInfo]:
+    ) -> tuple[Iterable[Segment], TranscriptionInfo]:
         """Transcribes an input file.
 
         Arguments:
@@ -1530,12 +1529,12 @@ class WhisperModel:
     def _split_segments_by_timestamps(
         self,
         tokenizer: Tokenizer,
-        tokens: List[int],
+        tokens: list[int],
         time_offset: float,
         segment_size: int,
         segment_duration: float,
         seek: int,
-    ) -> List[List[int]]:
+    ) -> list[list[int]]:
         current_segments = []
         single_timestamp_ending = (
             len(tokens) >= 2 and tokens[-2] < tokenizer.timestamp_begin <= tokens[-1]
@@ -1612,7 +1611,7 @@ class WhisperModel:
         tokenizer: Tokenizer,
         options: TranscriptionOptions,
         log_progress,
-        encoder_output: Optional[ctranslate2.StorageView] = None,
+        encoder_output: ctranslate2.StorageView | None = None,
     ) -> Iterable[Segment]:
         content_frames = features.shape[-1] - 1
         content_duration = float(content_frames * self.feature_extractor.time_per_frame)
@@ -1627,14 +1626,14 @@ class WhisperModel:
                 )
             ]
 
-        seek_points: List[int] = [
+        seek_points: list[int] = [
             round(ts * self.frames_per_second) for ts in options.clip_timestamps
         ]
         if len(seek_points) == 0:
             seek_points.append(0)
         if len(seek_points) % 2 == 1:
             seek_points.append(content_frames)
-        seek_clips: List[Tuple[int, int]] = list(
+        seek_clips: list[tuple[int, int]] = list(
             zip(seek_points[::2], seek_points[1::2])
         )
 
@@ -1662,10 +1661,8 @@ class WhisperModel:
         #     while seek < seek_clip_end
         while clip_idx < len(seek_clips):
             seek_clip_start, seek_clip_end = seek_clips[clip_idx]
-            if seek_clip_end > content_frames:
-                seek_clip_end = content_frames
-            if seek < seek_clip_start:
-                seek = seek_clip_start
+            seek_clip_end = min(seek_clip_end, content_frames)
+            seek = max(seek, seek_clip_start)
             if seek >= seek_clip_end:
                 clip_idx += 1
                 if clip_idx < len(seek_clips):
@@ -1757,7 +1754,7 @@ class WhisperModel:
                     score += duration - 2.0
                 return score
 
-            def is_segment_anomaly(segment: Optional[dict]) -> bool:
+            def is_segment_anomaly(segment: dict | None) -> bool:
                 if segment is None or not segment["words"]:
                     return False
                 words = [w for w in segment["words"] if w["word"] not in punctuation]
@@ -1765,7 +1762,7 @@ class WhisperModel:
                 score = sum(word_anomaly_score(w) for w in words)
                 return score >= 3 or score + 0.01 >= len(words)
 
-            def next_words_segment(segments: List[dict]) -> Optional[dict]:
+            def next_words_segment(segments: list[dict]) -> dict | None:
                 return next((s for s in segments if s["words"]), None)
 
             (
@@ -1908,10 +1905,10 @@ class WhisperModel:
     def generate_with_fallback(
         self,
         encoder_output: ctranslate2.StorageView,
-        prompt: List[int],
+        prompt: list[int],
         tokenizer: Tokenizer,
         options: TranscriptionOptions,
-    ) -> Tuple[ctranslate2.models.WhisperGenerationResult, float, float, float]:
+    ) -> tuple[ctranslate2.models.WhisperGenerationResult, float, float, float]:
         decode_result = None
         all_results = []
         below_cr_threshold_results = []
@@ -2038,11 +2035,11 @@ class WhisperModel:
     def get_prompt(
         self,
         tokenizer: Tokenizer,
-        previous_tokens: List[int],
+        previous_tokens: list[int],
         without_timestamps: bool = False,
-        prefix: Optional[str] = None,
-        hotwords: Optional[str] = None,
-    ) -> List[int]:
+        prefix: str | None = None,
+        hotwords: str | None = None,
+    ) -> list[int]:
         prompt = []
 
         if previous_tokens or (hotwords and not prefix):
@@ -2072,7 +2069,7 @@ class WhisperModel:
 
     def add_word_timestamps(
         self,
-        segments: List[dict],
+        segments: list[dict],
         tokenizer: Tokenizer,
         encoder_output: ctranslate2.StorageView,
         num_frames: int,
@@ -2204,11 +2201,11 @@ class WhisperModel:
     def find_alignment(
         self,
         tokenizer: Tokenizer,
-        text_tokens: List[int],
+        text_tokens: list[int],
         encoder_output: ctranslate2.StorageView,
         num_frames: int,
         median_filter_width: int = 7,
-    ) -> List[dict]:
+    ) -> list[dict]:
         if len(text_tokens) == 0:
             return []
 
@@ -2273,13 +2270,13 @@ class WhisperModel:
 
     def detect_language(
         self,
-        audio: Optional[np.ndarray] = None,
-        features: Optional[np.ndarray] = None,
+        audio: np.ndarray | None = None,
+        features: np.ndarray | None = None,
         vad_filter: bool = False,
-        vad_parameters: Union[dict, VadOptions] = None,
+        vad_parameters: dict | VadOptions = None,
         language_detection_segments: int = 1,
         language_detection_threshold: float = 0.5,
-    ) -> Tuple[str, float, List[Tuple[str, float]]]:
+    ) -> tuple[str, float, list[tuple[str, float]]]:
         """
         Use Whisper to detect the language of the input audio or features.
 
@@ -2301,9 +2298,9 @@ class WhisperModel:
             languege_probability: Probability of the detected language.
             all_language_probs: List of tuples with all language names and probabilities.
         """
-        assert (
-            audio is not None or features is not None
-        ), "Either `audio` or `features` must be provided."
+        assert audio is not None or features is not None, (
+            "Either `audio` or `features` must be provided."
+        )
 
         if audio is not None:
             if vad_filter:
@@ -2349,7 +2346,7 @@ class WhisperModel:
 
 def restore_speech_timestamps(
     segments: Iterable[Segment],
-    speech_chunks: List[dict],
+    speech_chunks: list[dict],
     sampling_rate: int,
 ) -> Iterable[Segment]:
     ts_map = SpeechTimestampsMap(speech_chunks, sampling_rate)
@@ -2389,8 +2386,8 @@ def get_compression_ratio(text: str) -> float:
 
 def get_suppressed_tokens(
     tokenizer: Tokenizer,
-    suppress_tokens: Tuple[int],
-) -> Optional[List[int]]:
+    suppress_tokens: tuple[int],
+) -> list[int] | None:
     if -1 in suppress_tokens:
         suppress_tokens = [t for t in suppress_tokens if t >= 0]
         suppress_tokens.extend(tokenizer.non_speech_tokens)
@@ -2412,7 +2409,7 @@ def get_suppressed_tokens(
     return tuple(sorted(set(suppress_tokens)))
 
 
-def merge_punctuations(alignment: List[dict], prepended: str, appended: str) -> None:
+def merge_punctuations(alignment: list[dict], prepended: str, appended: str) -> None:
     # merge prepended punctuations
     i = len(alignment) - 2
     j = len(alignment) - 1

@@ -8,12 +8,12 @@ from faster_whisper.utils import available_models, download_model, format_timest
 from faster_whisper.version import __version__
 
 __all__ = [
+    "AsyncBatchedInferencePipeline",
+    "BatchedInferencePipeline",
+    "WhisperModel",
+    "__version__",
     "available_models",
     "decode_audio",
-    "WhisperModel",
-    "BatchedInferencePipeline",
-    "AsyncBatchedInferencePipeline",
     "download_model",
     "format_timestamp",
-    "__version__",
 ]
